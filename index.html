@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <!-- Latest compiled and minified CSS -->
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"> -->
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css">
+    <!-- Optional theme -->
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"> -->
+    <!-- Latest compiled and minified JavaScript -->
+    <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script> -->
+    <title>Car Log</title>
+    <style>
+      .right{
+        text-align: right;
+      }
+      .justify{
+        text-align: justify;
+      }
+      .left{
+        text-align: left;
+      }
+      .invisible{
+        display:none;
+      }
+      .scale50{
+        -ms-transform: scale(0.5,0.5); /* IE 9 */
+        -webkit-transform: scale(0.5,0.5); /* Safari */
+        transform: scale(0.5,0.5);
+      }
+      .scale25{
+        -ms-transform: scale(0.25,0.25); /* IE 9 */
+        -webkit-transform: scale(0.25,0.25); /* Safari */
+        transform: scale(0.25,0.25);
+      }
+      .imgC{
+        vertical-align: middle;
+      }
+      .cent{
+        text-align:center;
+      }
+      .btn{
+        border:2px solid #ccc;
+        margin:5px 5px;
+        padding:0px 50px;
+        border-radius: 25px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">
+      <h1>Loading...</h1>
+    </div>
+    <div id="mainPage" class="invisible">
+      <ul>
+        <li><a href="#summaryTab">Summary</a></li>
+        <li><a href="#activityTab">Activity</a></li>
+        <li><a href="#historyTab">History</a></li>
+      </ul>
+      <div id="summaryTab" style="padding:0px">
+        <div class="pure-g">
+          <div class="pure-u-23-24 pure-u-sm-11-12"></div>
+          <div class="pure-u-1-24 pure-u-sm-1-12 right"><img src='img/cloudRefresh.png' class='' /></div>
+        </div>
+        <div id="summaryDiv">History Data</div>
+      </div>
+      <div id="activityTab" style="padding:0px">
+        <div class="pure-g" id="activityDiv">
+          <div class="pure-u-23-24 pure-u-sm-11-12"></div>
+          <div class="pure-u-1-24 pure-u-sm-1-12 right"><img src='img/cloudRefresh.png' class='' /></div>
+          <form id="activity_form">
+            <div class="pure-u-1-3 pure-u-sm-2-5"><label for="inp_odometer">Odometer</label></div>
+            <div class="pure-u-2-3 pure-u-sm-3-5"><input type='number' id="inp_odometer" name='odometer' placeholder="Odometer Reading"></div>
+
+            <div class="pure-u-1-3 pure-u-sm-2-5"><label for="inp_qty">Quantity</label></div>
+            <div class="pure-u-2-3 pure-u-sm-3-5"><input type='number' id="inp_qty" name='gallons' placeholder="Quantity"></div>
+
+            <div class="pure-u-1-3 pure-u-sm-2-5"><label for="inp_fuelPrice">Fuel Price</label></div>
+            <div class="pure-u-2-3 pure-u-sm-3-5"><input type='number' id="inp_fuelPrice" name='fuel_price' placeholder="unit price"></div>
+
+            <div class="pure-u-1-3 pure-u-sm-2-5"><label for="inp_date">Date</label></div>
+            <div class="pure-u-2-3 pure-u-sm-3-5"><input type='date'  id='inp_date' name='fill-date'></div>
+
+            <div class="pure-u-1-3 pure-u-sm-2-5"><label for="inp_location">Location</label></div>
+            <div class="pure-u-2-3 pure-u-sm-3-5"><input type='text' name='location' id='inp_location' placeholder="location"></div>
+
+            <div class="pure-u-1 cent"><input id="save2cloud" class="btn" type="image" src="img/upload2cloud.png" alt="Save"></div>
+          </form>
+        </div>
+        <div id="activityOK" class="invisible cent">
+          <img src="img/cloud.svg" style="width:70%">
+        </div>
+      </div>
+      <div id="historyTab" style="padding:0px">
+        <div class="pure-g">
+          <div class="pure-u-23-24 pure-u-sm-11-12"></div>
+          <div class="pure-u-1-24 pure-u-sm-1-12 right"><img src='img/cloudRefresh.png' class='' /></div>
+        </div>
+        <div id="historyDiv">History Data</div>
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+    <!--<script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.1/dygraph-combined.js"></script>-->
+    <script>
+    var k;
+    var eType=["?","fuel","Service","Oil Change","Breaks","Tyre","Flat Tyre"];
+    var lastOdo=-1;
+    $(document).ready(function(){
+      // ajax -
+      var contentVar='a={"action": ["summary","history"]}';
+      $.post('api.php',contentVar,processData);
+      $('#loading').toggleClass('invisible');
+      $('#mainPage').toggleClass('invisible').tabs();
+      dateR=dateRange();
+      $('#inp_date').attr('min',dateR[0]);
+      $('#inp_date').attr('max',dateR[1]);
+      $('#save2cloud').click(save_activity);
+      $('#activityOK').click(function(){
+        $('#activityOK').toggleClass('invisible');
+        $('#activityDiv').toggleClass('invisible');
+      });
+    });
+    //------------------------
+    function processData(d,s,x){
+      data=eval(d);
+      k=data ;
+      if (data.hasOwnProperty("history")){
+        if (data.history.operation==0){
+          html_txt="";
+          data.history.events.forEach(function(E){
+            dateO=eval(E["date"]);
+            html_txt+="<h3><div><img src='img/fuel.png' class='ui-icon imgC'/>"+dateO.toDateString()+"</div></h3>"+
+            "<div class='pure-g' style='padding:2px'>"+
+                "<div class='pure-u-1-3 pure-u-md-1-5 cent'><img src='img/odometer.png' class='scale50' /><br/>"+E["odometer"]+"</div>"+
+                "<div class='pure-u-1-3 pure-u-md-1-5 cent'><img src='img/volume.png' class='scale50' /><br/>"+E["gallons"]+"</div>"+
+                "<div class='pure-u-1-3 pure-u-md-1-5 cent'><img src='img/price.png' class='scale50' /><br/>"+E["price"]+"</div>"+
+                "<div class='pure-u-1-3 pure-u-md-1-5 cent'><img src='img/economy.png' class='scale50' /><br/>"+E["eta"]+"</div>"+
+                "<div class='pure-u-1-3 pure-u-md-1-5 cent'><img src='img/map.png' class='scale50' /><br/>"+E["place"]+"</div>"+
+                "<div class='pure-u-1-3 pure-u-md-1-5 cent'> <br/> </div>"+
+            "</div>";
+          });
+          $("#historyDiv").html(html_txt);
+          $("#historyDiv").accordion({
+            heightStyle: "content",
+            collapsible: true
+          });
+        }else{
+          console.log("History Error");
+        }
+      }
+      if (data.hasOwnProperty("summary")){
+        lastOdo=parseInt(data.summary.odometer);
+        if (data.summary.operation==0){
+          if (typeof data.summary.alert == 'undefined'){
+            alert_msg=''
+          }else{
+            alert_msg=data.summary.alert;
+          }
+          html_txt="<div class='pure-g' style='padding:2px'>"+
+          "<div class='pure-u-1 pure-u-sm-1'>"+alert_msg+"</div>"+
+          "<div class='pure-u-1-2 pure-u-sm-1-2 cent'><img src='img/odometer.png' class='' /></div>"+
+          "<div class='pure-u-1-2 pure-u-sm-1-2 cent'><img src='img/economy.png' class='' /></div>"+
+          "<div class='pure-u-1-2 pure-u-sm-1-2 cent'>"+data.summary.odometer+"</div>"+
+          "<div class='pure-u-1-2 pure-u-sm-1-2 cent'>"+data.summary.economy+"</div>"+
+          "</div>";
+          $("#summaryDiv").html(html_txt);
+          $('#inp_odometer').attr('min',data.summary.odometer);
+        }else{
+          console.log("Summary Error");
+        }
+      }
+    }
+
+    function save_activity(e){
+      e.preventDefault();
+      economy=(lastOdo==-1)?-1:(parseInt($('#inp_odometer').val())-lastOdo)/parseInt($('#inp_qty').val());
+      contentVar='a={"action": ["add"]}'+
+      '&fillDate='+$('#inp_date').val()+
+      '&gallons='+$('#inp_qty').val()+
+      '&fuel_price='+$('#inp_fuelPrice').val()+
+      '&economy='+economy+
+      '&odometer='+$('#inp_odometer').val()+
+      '&location='+$('#inp_location').val();
+      $.post('api.php',contentVar,function(data,status,xhr){
+        k=data;
+        console.log(data);
+        if (data.add.operation==0){
+          $('#activity_form').trigger("reset");
+          $('#activityDiv').toggleClass('invisible')
+          $('#activityOK').toggleClass('invisible')
+        }else{
+          alert('Error Saving');
+        }
+      });
+    }
+
+    function dateRange(){
+      var today=new Date(); //Today's Date
+      var minDate=new Date(today.getFullYear(),today.getMonth(),today.getDate()-365)
+      var maxDate=new Date(today.getFullYear(),today.getMonth(),today.getDate()+365)
+      minTxt=minDate.toISOString();
+      maxTxt=maxDate.toISOString();
+      return [minTxt.substring(0,10), maxTxt.substring(0,10)];
+    }
+    </script>
+  </body>
+</html>
